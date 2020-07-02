@@ -1,0 +1,76 @@
+1.	Do you know systemd, SysVinit or Upstart?
+2.	Do you know FHS? How to manage package compile?
+3.	Should you clean trash in your server when change role?
+4.	Do you have server naming schema? What about hostname of you server?
+5.	How long uptime of your server? Do you update new version OS?
+6.	Do you use key or password for ssh, do you have policy for password?
+7.	Do you use firewall on your server?
+8.	Do you know Heartbleed, Shellshock and POODLE?
+9.	Do you use redis or mongod? How to authentication them? What user of process mongod or redis?
+10.	How do you deploy code to server? Do you use git pull for deployment?
+
+Answer:
+1.	I worked woth both sysvinit and systemd, not upstart. I heard upstart is the replaced one for sysvinit also but don’t have requirement for using it.
+Sysvinit and systemd are both magement system of Linux/Unix system.
+I used sysvinit in old versions of CentOS (/etc/init.d/script <start>|<stop>|<restart>|<status>... are very familiar when manage process, services, …) and /etc/inittab to setup startup level, ... But some years ago I started using systemd to manage system.
+Systemd initiate a child process with pid 1, all other process created after that will be child process of this.
+I use 2 below command some systemd commandline to manage system:
+-	systemctl (System Control) commandline to manage the systemd such as systemctl start|stop|restart|status|enable service_name
+-	journalctl to check the log, boot times. Example, check the nginx unit log: journalctl -u nginx.service ( filter the log by –since, --untile, _UID, _GID, limit number of output entry use -n <number>)
+-	Some time we need to check dmesg to know the kernel log, use journalctl -k (or –dmesg).
+-	Many other commands to manage time, host, .. but less time to use them
+2.	FHS is standfor  Filesystem Hierachy Standard. In Linux/Unix, we have / is the root, in the root we have /bin/, /etc, /usr, /sbin,/opt, …. directories. Each one have its meaning
+a.	/sbin: contain system binary files, such as arp, sysctl, lfconfig, lsmod, …
+b.	/etc: store the configuration 
+c.	/usr: read-only user data 
+d.	/opt: optional data
+e.	/tmp: temporary files, no restriction for all users access 
+f.	…
+How to manage package compile? – Do you mean manage ourself built one or already built and stored on public repository. I usually use the already compiled binary program. But some time also need to built by my self from source code. For example I use Nginx to do proxy for TCP connection (layer 4) instead layer 7.
+But default from downloadable binary package it’s not enabled. So I have to enabled from build the source.
+In order build the source I have to install the required libraries for build and usually set the –prefix to /opt directory because /opt is used for the customized one such as built by our self application.
+For manage the compiled binary from public repository is different way in different distro such as Ubuntu use apt, apt-get (.deb packages), while RedHat based use yum, dnf (.rpm packages).
+There are official repo and 3rd repo, be careful when use 3rd repo, atleast you have to verify the checksums before install them.
+
+3.	Should you clean trash in your server when change role?
+I don’t understand which mean you are mentioning. What is the role, what kind of trash so I can't answer you.
+Are you mentioning about the security aspect on server?
+
+4.	Server naming schema is for sure the one should be defined to easy to know location, functionality, OS type, … of a server once we look into the name. Example: srv-wn-si-file-001 (server windows, located in singapore DC, file server 001), srv-li-fb-dns-002 (server linux, furbach DC, DNS server 002). The naming convention is up to company rules, which is good also to make grouping for doing patching, apply automation from configuration management, filtering, …
+
+5.	How long uptime of your server? It’s up to functionality of server. Some server should be monthly, weekly. The uptime usually monitored by monitoring system and schedule auto reboot server. Some server need to patch and reboot manually based on the speciallity of function or controlling policy. If server manually reboot, the uptime reset and the auto reboot will be ignored.
+Do you update new version OS?- I did it many time during my working. Some old OS should be upgrade to be compatible with requirement of applications will be install on it or to prevent the end of support of OS version lifecycle.
+
+6.	 Do you use key or password for ssh, do you have policy for password?
+Private key used to access server is much more security than password. We have a jump host and servers are trust this host and copy its public key into their ~/.ssh/authorized_keys. User can access to servers without require password. I use both methods.
+For password policy it should be long enough, more than 10 characters, and require complex password with lower, upper, number, special characters in the password string.
+
+7.	Do you use firewall on your server? – We should implement firewall from outside and inside server. The firewall on front of server will restrict 1 layer of security and inside server we also need to enable firewall, allow only the port which need to be exposed and reject all the other one.
+Firewall on server some time cause some bug because they reject some required traffic. So we need to clearly understand the requirement of opened ports and apply limitations accessing to them. This is one of the very important my tasks and I responsible to make sure the server is hardening enough for security aspect.
+
+8.	 Do you know Heartbleed, Shellshock and POODLE?
+These 3 vulnerabilities are very famous and I think people who work on computer science always know about them. I know and started fixing these 3 security issue from when I work for YouNetCo company. Actually they are very simple to fix. I could summarize little bit like this:
+Hearbleed is a bug of OpenSSL allow anyone can read the memory of server. Once they can read memory mean they know everything was loaded to memory for execution. Mean they know all from our server. Update OpenSSL to fix.
+Shellshock is a bug of Bash, allow people to execute the commands via environment variable or parse the command into the http header. Update bash to latest version to fix.
+POODLE is a exploit of MID attack, attacker can downgrade the encrypted connection to SSL 3.0 to to reveal one byte of encrypted messages. I remember that the Vietnamese guy, Thai Duong whose I known him also discovered this together with his security team of Google. This guy is much famous in Vietnam in security field. Disable ssl 3.0 on browsers and use TLS instead SSL to fix.
+
+9.	Do you use redis or mongod? – Yes. I used MongoDB as backend database and redis is the caching layer for database.
+How to authentication them? Which kind of authentication method you are mentioning? If you are mentioning about using cli, it’s mongo –host <mongodb_server> --port <port> –username <username> --password <password> --authenticationDatabase
+If the port in default you can skip its –port.  You can make ask mongo command to promt for password by put –password at the end of the line and without password string.
+
+In order to access Redis by redis-cli client commandline: redis-cli
+redis-cli -u redis://user:pass@host:port
+or 
+redis-cli -h host -p port -a password
+After connect success we will have a redis shell to type commands such as PING, SET, DEL, KEYS,MOVE, RENAME, …
+
+For the application connection we install the driver for them such as mongoose, node-redis, … and take connection string, start connect to them.
+
+What user of process mongod or redis? We can create separated the service accounts to run their process.
+
+10.	How do you deploy code to server?
+Deploy the code to server, many ways: manually, by Ansible tool, DIALOG, shell script, Kubernetes or OpenShift of deploy dockers images.
+
+Do you use git pull for deployment?
+We don’t use git pull for deployment, git pull is first step in the pipeline of Jenkins, or CircleCI, … After pull code, we build, packaging, unit test, deploy dev, integration test, scan security code, … deployment, test, … or rollback.
+
